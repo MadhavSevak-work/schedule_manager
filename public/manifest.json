@@ -1,0 +1,22 @@
+{
+  "name": "Chronos Schedule Manager",
+  "short_name": "Chronos",
+  "description": "Premium schedule alarm and hourly reminder system.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#0a0710",
+  "theme_color": "#8a2be2",
+  "orientation": "portrait-primary",
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    {
+      "src": "icons/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

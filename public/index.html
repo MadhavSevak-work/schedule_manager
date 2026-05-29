@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Chronos | Premium Schedule Manager</title>
+  
+  <!-- SEO & PWA Meta Tags -->
+  <meta name="description" content="Manage your schedules, set automatic alarms, and configure hourly reminders. Keep track of your day with Chronos.">
+  <meta name="theme-color" content="#0a0710">
+  
+  <!-- iOS / Apple Specific Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Chronos">
+  <link rel="apple-touch-icon" href="icons/icon.png">
+  
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Vanilla CSS Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Animated Background Glows -->
+  <div class="bg-glow bg-glow-1"></div>
+  <div class="bg-glow bg-glow-2"></div>
+  <div class="bg-glow bg-glow-3"></div>
+
+  <!-- Audio Unlocking Bar (Critical for Safari/iOS) -->
+  <div id="audio-unlock-banner" class="audio-banner">
+    <i class="fa-solid fa-circle-exclamation"></i> Tap anywhere to activate alarm audio constraints
+  </div>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo-area">
+        <div class="logo-icon">
+          <i class="fa-solid fa-clock-rotate-left"></i>
+        </div>
+        <div>
+          <h1>Chronos</h1>
+          <p class="subtitle">Smart Schedule & Hourly Alarm Assistant</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="btn-test-alarm" class="btn btn-secondary" title="Test Alarm Sound">
+          <i class="fa-solid fa-volume-high"></i> <span class="hide-on-mobile">Test Sound</span>
+        </button>
+        <button id="btn-request-notif" class="btn btn-secondary" title="Enable Notifications">
+          <i class="fa-solid fa-bell"></i> <span class="hide-on-mobile">Notifications</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Stats Panel -->
+    <section class="stats-container" id="stats-panel">
+      <div class="stat-card">
+        <div class="stat-icon icon-blue">
+          <i class="fa-solid fa-calendar-days"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value" id="stat-total">0</span>
+          <span class="stat-label">Total</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon icon-orange">
+          <i class="fa-solid fa-bell-concierge"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value" id="stat-pending">0</span>
+          <span class="stat-label">Active</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon icon-purple">
+          <i class="fa-solid fa-repeat"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value" id="stat-hourly">0</span>
+          <span class="stat-label">Hourly</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Workspace -->
+    <main class="main-workspace">
+      <!-- Create Schedule Form Overlay Sheet -->
+      <div id="form-overlay-sheet" class="form-overlay-sheet">
+        <section class="form-section glass-panel">
+          <div class="form-header">
+            <h2 class="section-title"><i class="fa-solid fa-calendar-plus"></i> New Alarm</h2>
+            <button id="btn-close-form" class="btn btn-close hide-on-desktop">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+          
+          <form id="schedule-form" class="schedule-form">
+            <div class="form-group">
+              <label for="input-title">Task Title *</label>
+              <input type="text" id="input-title" placeholder="e.g., Drink water, Medicine" required autocomplete="off">
+            </div>
+
+            <div class="form-group">
+              <label for="input-desc">Description / Notes</label>
+              <textarea id="input-desc" placeholder="Write any notes here..." rows="3"></textarea>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label for="input-datetime">Date & Time *</label>
+                <input type="datetime-local" id="input-datetime" required>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label for="input-priority">Priority *</label>
+                <select id="input-priority" class="select-dropdown">
+                  <option value="low">Low Priority</option>
+                  <option value="medium" selected>Medium Priority</option>
+                  <option value="high">High Priority</option>
+                </select>
+              </div>
+
+              <div class="form-group flex-1">
+                <label for="input-ringtone">Alarm Sound *</label>
+                <select id="input-ringtone" class="select-dropdown">
+                  <option value="default" selected>Classic Buzzer</option>
+                  <option value="chime">Gentle Chime</option>
+                  <option value="scifi">Sci-Fi Pulsar</option>
+                  <option value="pulse">Deep Pulse</option>
+                  <option value="digital">Digital Ping</option>
+                  <option value="urgent">Urgent Alert</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group toggle-group">
+              <div class="toggle-text">
+                <label for="input-hourly">Hourly Reminder</label>
+                <p class="toggle-desc">Repeats every hour after due time until completed.</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="input-hourly">
+                <span class="slider round"></span>
+              </label>
+            </div>
+
+            <button type="submit" id="btn-submit-schedule" class="btn btn-primary btn-block">
+              <i class="fa-solid fa-circle-plus"></i> Set Schedule Alarm
+            </button>
+          </form>
+        </section>
+      </div>
+
+      <!-- Schedules List -->
+      <section class="list-section">
+        <div class="list-header">
+          <div class="title-with-progress">
+            <h2 class="section-title"><i class="fa-solid fa-list-check"></i> Active Schedules</h2>
+            <!-- Circular Productivity Progress Indicator -->
+            <div class="completion-tracker" title="Schedules Completed Rate">
+              <svg class="progress-ring" width="36" height="36">
+                <circle class="progress-ring-bg" stroke="rgba(255,255,255,0.06)" stroke-width="3" fill="transparent" r="15" cx="18" cy="18"/>
+                <circle id="progress-indicator-circle" class="progress-ring-circle" stroke="var(--accent-purple)" stroke-dasharray="94.2" stroke-dashoffset="94.2" stroke-width="3" fill="transparent" r="15" cx="18" cy="18"/>
+              </svg>
+              <span id="progress-text-pct" class="progress-text">0%</span>
+            </div>
+          </div>
+          <div class="filter-controls">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="pending">Pending</button>
+            <button class="filter-btn" data-filter="completed">Completed</button>
+          </div>
+        </div>
+
+        <div id="schedules-list" class="schedules-grid">
+          <!-- Dynamic contents -->
+          <div class="loading-state">
+            <i class="fa-solid fa-spinner fa-spin"></i>
+            <p>Syncing your schedules...</p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Mobile Floating Action Button (FAB) -->
+  <button id="fab-add-schedule" class="fab-btn hide-on-desktop" aria-label="Add Schedule">
+    <i class="fa-solid fa-plus"></i>
+  </button>
+
+  <!-- PWA Install Guide Banner (Mobile-specific) -->
+  <div id="pwa-install-banner" class="pwa-install-banner hidden">
+    <div class="install-card">
+      <div class="install-logo">
+        <i class="fa-solid fa-clock-rotate-left"></i>
+      </div>
+      <div class="install-info">
+        <h3>Install Chronos</h3>
+        <p id="install-text">Add to Home Screen for native experience and real-time alerts.</p>
+      </div>
+      <div class="install-actions">
+        <button id="btn-pwa-install-action" class="btn btn-primary btn-sm">Install</button>
+        <button id="btn-pwa-close" class="btn btn-close-sm"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- iOS Manual Share Installation Alert Modal -->
+  <div id="ios-install-modal" class="ios-modal hidden">
+    <div class="ios-modal-content">
+      <h3>Install on your iPhone/iPad</h3>
+      <p>To install Chronos and enable full alarm features, follow these instructions:</p>
+      <ol class="ios-instructions">
+        <li>Tap the <strong>Share</strong> button <i class="fa-solid fa-arrow-up-from-bracket"></i> at the bottom of Safari.</li>
+        <li>Scroll down and tap <strong>Add to Home Screen</strong> <i class="fa-regular fa-square-plus"></i>.</li>
+        <li>Name it "Chronos" and tap <strong>Add</strong> in the top right.</li>
+      </ol>
+      <button id="btn-close-ios-modal" class="btn btn-primary btn-block">Got it!</button>
+    </div>
+  </div>
+
+  <!-- Fullscreen Alarm Overlay Modal -->
+  <div id="alarm-overlay" class="alarm-overlay hidden">
+    <div class="alarm-modal-card">
+      <div class="alarm-bell-animation">
+        <i class="fa-solid fa-bell fa-shake"></i>
+      </div>
+      <h2 class="alarm-title">ALARM ACTIVE</h2>
+      <div class="alarm-details">
+        <h3 id="alarm-task-title">Task Title</h3>
+        <p id="alarm-task-desc">Task Description</p>
+        <span class="alarm-time-tag" id="alarm-task-time">12:00 PM</span>
+        <div id="alarm-hourly-badge" class="alarm-badge hidden">
+          <i class="fa-solid fa-repeat"></i> Hourly Reminder Mode
+        </div>
+      </div>
+      <div class="alarm-actions">
+        <button id="btn-alarm-complete" class="btn btn-success btn-large btn-block">
+          <i class="fa-solid fa-check-double"></i> Mark Completed
+        </button>
+        <button id="btn-alarm-snooze" class="btn btn-warning btn-large btn-block">
+          <i class="fa-solid fa-bell-slash"></i> Snooze 5 Min
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom Notification Toast -->
+  <div id="toast" class="toast hidden">
+    <span id="toast-message">Message goes here</span>
+  </div>
+
+  <!-- Footer -->
+  <footer class="app-footer">
+    <p>&copy; 2026 Chronos. Optimized for iOS, Android & Desktop.</p>
+  </footer>
+
+  <!-- App Script -->
+  <script src="app.js"></script>
+</body>
+</html>

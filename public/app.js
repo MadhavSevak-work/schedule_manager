@@ -718,11 +718,20 @@ function triggerAlarm(schedule) {
   document.getElementById('alarm-overlay').classList.remove('hidden');
 }
 
-// Dismiss Alarm
+// Dismiss the current ring without completing the schedule.
 function dismissAlarm() {
   stopAlarmSound();
   document.getElementById('alarm-overlay').classList.add('hidden');
   
+  if (activeAlarmSchedule) {
+    activeAlarmSchedule = null;
+  }
+}
+
+function completeActiveAlarm() {
+  stopAlarmSound();
+  document.getElementById('alarm-overlay').classList.add('hidden');
+
   if (activeAlarmSchedule) {
     const id = activeAlarmSchedule.id;
     activeAlarmSchedule = null;
@@ -747,7 +756,8 @@ function snoozeAlarm() {
 }
 
 // UI Event Listeners for alarm action buttons
-document.getElementById('btn-alarm-complete').addEventListener('click', dismissAlarm);
+document.getElementById('btn-alarm-complete').addEventListener('click', completeActiveAlarm);
+document.getElementById('btn-alarm-dismiss').addEventListener('click', dismissAlarm);
 document.getElementById('btn-alarm-snooze').addEventListener('click', snoozeAlarm);
 
 // Sound tester

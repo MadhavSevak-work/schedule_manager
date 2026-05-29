@@ -88,9 +88,17 @@
         </div>
         <div class="stat-info">
           <span class="stat-value" id="stat-hourly">0</span>
-          <span class="stat-label">Hourly</span>
+          <span class="stat-label">Follow-ups</span>
         </div>
       </div>
+    </section>
+
+    <section class="progress-panel">
+      <div class="progress-panel-header">
+        <h2 class="section-title"><i class="fa-solid fa-chart-column"></i> Progress</h2>
+        <span id="progress-summary" class="progress-summary">No activity yet</span>
+      </div>
+      <div id="progress-chart" class="progress-chart"></div>
     </section>
 
     <!-- Workspace -->
@@ -148,8 +156,8 @@
 
             <div class="form-group toggle-group">
               <div class="toggle-text">
-                <label for="input-hourly">Hourly Reminder</label>
-                <p class="toggle-desc">Repeats every hour after due time until completed.</p>
+                <label for="input-hourly">5-Min Follow-ups</label>
+                <p class="toggle-desc">After the alarm rings, asks every 5 minutes up to 3 times.</p>
               </div>
               <label class="switch">
                 <input type="checkbox" id="input-hourly">
@@ -244,18 +252,15 @@
         <p id="alarm-task-desc">Task Description</p>
         <span class="alarm-time-tag" id="alarm-task-time">12:00 PM</span>
         <div id="alarm-hourly-badge" class="alarm-badge hidden">
-          <i class="fa-solid fa-repeat"></i> Hourly Reminder Mode
+          <i class="fa-solid fa-repeat"></i> Follow-up Reminder Mode
         </div>
       </div>
       <div class="alarm-actions">
         <button id="btn-alarm-complete" class="btn btn-success btn-large btn-block">
-          <i class="fa-solid fa-check-double"></i> Mark Completed
-        </button>
-        <button id="btn-alarm-dismiss" class="btn btn-secondary btn-large btn-block">
-          <i class="fa-solid fa-clock-rotate-left"></i> Dismiss This Ring
+          <i class="fa-solid fa-check-double"></i> Yes, Work Done
         </button>
         <button id="btn-alarm-snooze" class="btn btn-warning btn-large btn-block">
-          <i class="fa-solid fa-bell-slash"></i> Snooze 5 Min
+          <i class="fa-solid fa-bell-slash"></i> Not Done
         </button>
       </div>
     </div>

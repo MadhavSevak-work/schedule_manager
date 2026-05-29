@@ -4,6 +4,8 @@ let alertedScheduleIds = new Set(); // Tracks alarms triggered in the current se
 let activeAlarmSchedule = null;
 let activeFilter = 'all';
 let apiBaseUrl = '/api'; // Same host
+const FOLLOWUP_INTERVAL_MS = 5 * 60 * 1000;
+const MAX_FOLLOWUP_ASKS = 3;
 
 // Web Audio API Alarm Synthesizer
 let audioCtx = null;
@@ -283,6 +285,66 @@ function updateStats() {
   document.getElementById('stat-hourly').textContent = hourly;
   document.getElementById('progress-text-pct').textContent = `${completionPct}%`;
   document.getElementById('progress-indicator-circle').style.strokeDashoffset = offset;
+  renderProgressChart();
+}
+
+function renderProgressChart() {
+  const chart = document.getElementById('progress-chart');
+  const summary = document.getElementById('progress-summary');
+  if (!chart || !summary) return;
+
+  const days = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  for (let i = 6; i >= 0; i--) {
+    const day = new Date(today);
+    day.setDate(today.getDate() - i);
+    const key = getLocalDateKey(day);
+    days.push({
+      key,
+      label: day.toLocaleDateString([], { weekday: 'short' }),
+      total: 0,
+      completed: 0
+    });
+  }
+
+  schedules.forEach((schedule) => {
+    const date = new Date(schedule.schedule_datetime);
+    if (Number.isNaN(date.getTime())) return;
+    date.setHours(0, 0, 0, 0);
+    const key = getLocalDateKey(date);
+    const bucket = days.find((day) => day.key === key);
+    if (!bucket) return;
+
+    bucket.total += 1;
+    if (schedule.is_completed) {
+      bucket.completed += 1;
+    }
+  });
+
+  const total = days.reduce((sum, day) => sum + day.total, 0);
+  const completed = days.reduce((sum, day) => sum + day.completed, 0);
+  summary.textContent = total === 0 ? 'No activity yet' : `${completed}/${total} completed this week`;
+
+  chart.innerHTML = days.map((day) => {
+    const pct = day.total === 0 ? 0 : Math.round((day.completed / day.total) * 100);
+    return `
+      <div class="progress-day" title="${day.completed}/${day.total} completed">
+        <div class="progress-bar-track">
+          <div class="progress-bar-fill" style="height: ${Math.max(pct, day.total ? 8 : 0)}%"></div>
+        </div>
+        <div class="progress-day-label">${day.label}<br>${pct}%</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function getLocalDateKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 // Format Date / Time nicely
@@ -436,12 +498,12 @@ function renderSchedules() {
     } else if (countdown.isOverdue) {
       badgesHtml += `<span class="badge badge-overdue">Due</span>`;
       if (s.hourly_reminder) {
-        badgesHtml += `<span class="badge badge-hourly"><i class="fa-solid fa-repeat"></i> 1h</span>`;
+        badgesHtml += `<span class="badge badge-hourly"><i class="fa-solid fa-repeat"></i> 5m</span>`;
       }
     } else {
       badgesHtml += `<span class="badge badge-pending">Active</span>`;
       if (s.hourly_reminder) {
-        badgesHtml += `<span class="badge badge-hourly"><i class="fa-solid fa-repeat"></i> 1h</span>`;
+        badgesHtml += `<span class="badge badge-hourly"><i class="fa-solid fa-repeat"></i> 5m</span>`;
       }
     }
     badgesHtml += `<span class="badge badge-${priority}">${escapeHtml(priority)}</span>`;
@@ -602,6 +664,12 @@ async function completeSchedule(id) {
 
 // Update Reminded Timestamp in backend
 async function updateRemindedTime(id, dateISO) {
+  const index = schedules.findIndex(s => s.id === id);
+  if (index !== -1) {
+    schedules[index].last_reminded_at = dateISO;
+    schedules[index].reminder_count = Number(schedules[index].reminder_count || 0) + 1;
+  }
+
   try {
     await fetch(`${apiBaseUrl}/schedules/${id}/reminded`, {
       method: 'PUT',
@@ -610,11 +678,6 @@ async function updateRemindedTime(id, dateISO) {
       },
       body: JSON.stringify({ datetime: dateISO })
     });
-    
-    const index = schedules.findIndex(s => s.id === id);
-    if (index !== -1) {
-      schedules[index].last_reminded_at = dateISO;
-    }
   } catch (err) {
     console.error('Failed to update database timestamp:', err);
   }
@@ -662,17 +725,16 @@ function runAlarmCheck() {
     
     let shouldTrigger = false;
     
-    const alreadyAlarmedThisSession = alertedScheduleIds.has(s.id);
     const hasBeenAlarmedBefore = s.last_reminded_at != null;
     
-    if (!alreadyAlarmedThisSession && !hasBeenAlarmedBefore) {
+    if (!hasBeenAlarmedBefore) {
       shouldTrigger = true;
     } 
     else if (s.hourly_reminder) {
-      const lastRemindedTime = s.last_reminded_at ? new Date(s.last_reminded_at).getTime() : schedTime;
-      const oneHourMs = 3600000; 
+      const lastRemindedTime = new Date(s.last_reminded_at).getTime();
+      const reminderCount = Number(s.reminder_count || 0);
       
-      if (now - lastRemindedTime >= oneHourMs) {
+      if (reminderCount <= MAX_FOLLOWUP_ASKS && now - lastRemindedTime >= FOLLOWUP_INTERVAL_MS) {
         shouldTrigger = true;
       }
     }
@@ -711,6 +773,8 @@ function triggerAlarm(schedule) {
   const hourlyBadge = document.getElementById('alarm-hourly-badge');
   if (schedule.hourly_reminder) {
     hourlyBadge.classList.remove('hidden');
+    const count = Number(schedule.reminder_count || 0);
+    hourlyBadge.innerHTML = `<i class="fa-solid fa-repeat"></i> Follow-up ${Math.min(count + 1, MAX_FOLLOWUP_ASKS + 1)} of ${MAX_FOLLOWUP_ASKS + 1}`;
   } else {
     hourlyBadge.classList.add('hidden');
   }
@@ -739,26 +803,47 @@ function completeActiveAlarm() {
   }
 }
 
-// Snooze Alarm (Temporarily silence for 5 minutes)
-function snoozeAlarm() {
+function handleWorkNotDone() {
   stopAlarmSound();
   document.getElementById('alarm-overlay').classList.add('hidden');
   
   if (activeAlarmSchedule) {
-    const index = schedules.findIndex(s => s.id === activeAlarmSchedule.id);
+    const schedule = activeAlarmSchedule;
+    const index = schedules.findIndex(s => s.id === schedule.id);
     if (index !== -1) {
-      const snoozeDurationMs = 5 * 60 * 1000; 
-      schedules[index].snoozedUntil = Date.now() + snoozeDurationMs;
-      showToast(`Alarm snoozed for 5 minutes`, 'warning');
+      const reminderCount = Number(schedules[index].reminder_count || 0);
+
+      if (schedule.hourly_reminder && reminderCount <= MAX_FOLLOWUP_ASKS) {
+        schedules[index].snoozedUntil = Date.now() + FOLLOWUP_INTERVAL_MS;
+        showToast('I will ask again in 5 minutes.', 'warning');
+      } else {
+        promptRescheduleTask(schedules[index]);
+      }
     }
     activeAlarmSchedule = null;
   }
 }
 
+function promptRescheduleTask(schedule) {
+  const next = new Date(Date.now() + FOLLOWUP_INTERVAL_MS);
+  next.setSeconds(0);
+  next.setMilliseconds(0);
+  const tzOffset = next.getTimezoneOffset() * 60000;
+  const localISOTime = (new Date(next - tzOffset)).toISOString().slice(0, 16);
+
+  document.getElementById('input-title').value = schedule.title || '';
+  document.getElementById('input-desc').value = schedule.description || '';
+  document.getElementById('input-datetime').value = localISOTime;
+  document.getElementById('input-hourly').checked = !!schedule.hourly_reminder;
+  document.getElementById('input-priority').value = schedule.priority || 'medium';
+  document.getElementById('input-ringtone').value = schedule.ringtone || 'default';
+  openMobileFormDrawer();
+  showToast('Please set a new alarm time for this task.', 'warning');
+}
+
 // UI Event Listeners for alarm action buttons
 document.getElementById('btn-alarm-complete').addEventListener('click', completeActiveAlarm);
-document.getElementById('btn-alarm-dismiss').addEventListener('click', dismissAlarm);
-document.getElementById('btn-alarm-snooze').addEventListener('click', snoozeAlarm);
+document.getElementById('btn-alarm-snooze').addEventListener('click', handleWorkNotDone);
 
 // Sound tester
 let testInterval = null;

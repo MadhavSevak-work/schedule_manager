@@ -12,8 +12,16 @@ create table if not exists public.schedules (
   ringtone varchar(30) default 'default',
   is_completed boolean default false,
   last_reminded_at timestamptz null,
+  reminder_count integer default 0,
+  completed_at timestamptz null,
   created_at timestamptz default now()
 );
+
+alter table public.schedules
+add column if not exists reminder_count integer default 0;
+
+alter table public.schedules
+add column if not exists completed_at timestamptz null;
 
 create index if not exists schedules_schedule_datetime_idx
 on public.schedules (schedule_datetime);

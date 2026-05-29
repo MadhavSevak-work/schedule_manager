@@ -41,6 +41,8 @@ const JSONAdapter = {
       ringtone: ringtone || 'default',
       is_completed: false,
       last_reminded_at: null,
+      reminder_count: 0,
+      completed_at: null,
       created_at: new Date().toISOString()
     };
     schedules.push(newSchedule);
@@ -54,6 +56,7 @@ const JSONAdapter = {
     if (index === -1) return false;
 
     schedules[index].is_completed = true;
+    schedules[index].completed_at = new Date().toISOString();
     fs.writeFileSync(JSON_FILE_PATH, JSON.stringify(schedules, null, 2));
     return true;
   },
@@ -64,6 +67,7 @@ const JSONAdapter = {
     if (index === -1) return false;
 
     schedules[index].last_reminded_at = datetime;
+    schedules[index].reminder_count = (schedules[index].reminder_count || 0) + 1;
     fs.writeFileSync(JSON_FILE_PATH, JSON.stringify(schedules, null, 2));
     return true;
   },
@@ -85,7 +89,23 @@ class PostgresAdapter {
   }
 
   async getSchedules() {
-    const { rows } = await this.pool.query('SELECT * FROM schedules ORDER BY schedule_datetime ASC');
+    const { rows } = await this.pool.query(`
+      SELECT
+        id,
+        title,
+        description,
+        to_char(schedule_datetime, 'YYYY-MM-DD"T"HH24:MI') AS schedule_datetime,
+        hourly_reminder,
+        priority,
+        ringtone,
+        is_completed,
+        last_reminded_at,
+        reminder_count,
+        completed_at,
+        created_at
+      FROM schedules
+      ORDER BY schedule_datetime ASC
+    `);
     return rows;
   }
 
@@ -94,7 +114,19 @@ class PostgresAdapter {
       `INSERT INTO schedules
         (title, description, schedule_datetime, hourly_reminder, priority, ringtone)
        VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING *`,
+       RETURNING
+        id,
+        title,
+        description,
+        to_char(schedule_datetime, 'YYYY-MM-DD"T"HH24:MI') AS schedule_datetime,
+        hourly_reminder,
+        priority,
+        ringtone,
+        is_completed,
+        last_reminded_at,
+        reminder_count,
+        completed_at,
+        created_at`,
       [
         title,
         description || null,
@@ -109,12 +141,18 @@ class PostgresAdapter {
   }
 
   async completeSchedule(id) {
-    const result = await this.pool.query('UPDATE schedules SET is_completed = true WHERE id = $1', [id]);
+    const result = await this.pool.query(
+      'UPDATE schedules SET is_completed = true, completed_at = now() WHERE id = $1',
+      [id]
+    );
     return result.rowCount > 0;
   }
 
   async updateRemindedTime(id, datetime) {
-    const result = await this.pool.query('UPDATE schedules SET last_reminded_at = $1 WHERE id = $2', [datetime, id]);
+    const result = await this.pool.query(
+      'UPDATE schedules SET last_reminded_at = $1, reminder_count = reminder_count + 1 WHERE id = $2',
+      [datetime, id]
+    );
     return result.rowCount > 0;
   }
 
@@ -163,9 +201,14 @@ async function ensurePostgresSchema(pool) {
       ringtone VARCHAR(30) DEFAULT 'default',
       is_completed BOOLEAN DEFAULT false,
       last_reminded_at TIMESTAMPTZ NULL DEFAULT NULL,
+      reminder_count INTEGER DEFAULT 0,
+      completed_at TIMESTAMPTZ NULL DEFAULT NULL,
       created_at TIMESTAMPTZ DEFAULT now()
     );
   `);
+
+  await pool.query('ALTER TABLE schedules ADD COLUMN IF NOT EXISTS reminder_count INTEGER DEFAULT 0');
+  await pool.query('ALTER TABLE schedules ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ NULL DEFAULT NULL');
 
   await pool.query('CREATE INDEX IF NOT EXISTS schedules_schedule_datetime_idx ON schedules (schedule_datetime)');
   await pool.query('CREATE INDEX IF NOT EXISTS schedules_is_completed_idx ON schedules (is_completed)');

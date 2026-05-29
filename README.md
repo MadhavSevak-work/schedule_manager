@@ -1,6 +1,6 @@
 # Chronos Schedule Manager
 
-Chronos is a mobile-friendly schedule and alarm manager built with Node.js, Express, MySQL, and a vanilla PWA frontend. It can be installed from the browser on Android and added to the Home Screen on iPhone.
+Chronos is a mobile-friendly schedule and alarm manager built with Node.js, Express, Supabase PostgreSQL, and a vanilla PWA frontend. It can be installed from the browser on Android and added to the Home Screen on iPhone.
 
 ## Features
 
@@ -9,7 +9,7 @@ Chronos is a mobile-friendly schedule and alarm manager built with Node.js, Expr
 - Desktop/mobile notification permission flow.
 - Calendar export for native iPhone/Android reminder handoff.
 - Installable Progressive Web App with offline shell caching.
-- MySQL storage with automatic fallback to `schedules.json`.
+- Supabase PostgreSQL storage with automatic fallback to `schedules.json` for local testing.
 
 ## Important Mobile Notes
 
@@ -27,22 +27,18 @@ npm start
 
 Open `http://localhost:3000`.
 
-If MySQL is unavailable, Chronos automatically uses `schedules.json`.
+If `DATABASE_URL` is unavailable, Chronos automatically uses `schedules.json`.
 
-## MySQL Setup
+## Supabase Setup
 
-Run `schema.sql` in MySQL, then configure `.env`:
+Run `schema.sql` in Supabase Dashboard > SQL Editor, then configure `.env` locally or Vercel environment variables:
 
 ```env
 PORT=3000
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=your_mysql_password
-DB_NAME=schedule_db
+DATABASE_URL=postgresql://postgres.your_project_ref:your_password@aws-0-region.pooler.supabase.com:6543/postgres
 ```
 
-Restart the server after changing database settings.
+For Vercel, use Supabase's Transaction Pooler connection string. Restart or redeploy after changing database settings.
 
 ## Browser Installation
 

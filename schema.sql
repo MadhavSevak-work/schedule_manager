@@ -1,17 +1,22 @@
--- Create Database if not exists
-CREATE DATABASE IF NOT EXISTS `schedule_db`;
-USE `schedule_db`;
+-- Supabase PostgreSQL schema for Chronos.
+-- Run this in Supabase Dashboard > SQL Editor if you want to create the table manually.
+-- The Node server also creates this table automatically when DATABASE_URL is configured.
 
--- Create Schedules Table
-CREATE TABLE IF NOT EXISTS `schedules` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `title` VARCHAR(255) NOT NULL,
-  `description` TEXT NULL,
-  `schedule_datetime` DATETIME NOT NULL,
-  `hourly_reminder` BOOLEAN DEFAULT FALSE,
-  `priority` VARCHAR(20) DEFAULT 'medium',
-  `ringtone` VARCHAR(30) DEFAULT 'default',
-  `is_completed` BOOLEAN DEFAULT FALSE,
-  `last_reminded_at` DATETIME NULL DEFAULT NULL,
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+create table if not exists public.schedules (
+  id bigint generated always as identity primary key,
+  title varchar(255) not null,
+  description text,
+  schedule_datetime timestamp not null,
+  hourly_reminder boolean default false,
+  priority varchar(20) default 'medium',
+  ringtone varchar(30) default 'default',
+  is_completed boolean default false,
+  last_reminded_at timestamptz null,
+  created_at timestamptz default now()
+);
+
+create index if not exists schedules_schedule_datetime_idx
+on public.schedules (schedule_datetime);
+
+create index if not exists schedules_is_completed_idx
+on public.schedules (is_completed);

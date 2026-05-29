@@ -1,7 +1,7 @@
 {
   "name": "schedule-manager",
   "version": "1.0.0",
-  "description": "A beautiful schedule manager with automatic alarms and hourly reminders using Node.js, Express, and MySQL.",
+  "description": "A beautiful schedule manager with automatic alarms and hourly reminders using Node.js, Express, and Supabase PostgreSQL.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -11,7 +11,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
-    "mysql2": "^3.9.7"
+    "pg": "^8.21.0"
   },
   "keywords": [],
   "author": "",
